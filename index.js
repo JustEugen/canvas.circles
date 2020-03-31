@@ -66,7 +66,23 @@ function generateCircles(length, initialVector) {
   });
 }
 
-const easing = t => t*t*t*t*t;
+/**
+ *
+ * @param {Victor} positionVector
+ * @return {MouseCircle}
+ */
+function generateMouseCircle(positionVector) {
+  return {
+    v: positionVector,
+    ir: 50,
+    r: 0,
+    mr: getRandomWithMaxMin(200, 100),
+    step: getRandomWithMaxMin(4, 3, true),
+  };
+}
+
+const easing = t => t * t * t * t * t;
+const easing2 = t => 1 + --t * t * t * t * t;
 
 /**
  * @typedef {Object} Victor
@@ -85,6 +101,15 @@ const easing = t => t*t*t*t*t;
  * @property {Victor} mv - describe movement vector
  * @property {number} step - describe radius decrease step
  * @property {string} color
+ */
+
+/**
+ * @typedef {Object} MouseCircle
+ * @property {number} ir - describe initial radius
+ * @property {number} r - describe current radius
+ * @property {number} mr - describe max radius
+ * @property {number} step - describe radius increase step
+ * @property {Victor} v - describe position vector
  */
 
 const DOM_CANVAS = document.querySelector("#canvas");
@@ -107,15 +132,15 @@ const COLORS = [
   "#f1c40f",
   "#16a086",
   "#AFCFEA",
-  '#004156',
-  '#70E852',
-  '#FED876',
-  '#F85C50',
-  '#F5B2AC',
-  '#460000',
-  '#FFBEED',
-  '#380438',
-  '#852EBA'
+  "#004156",
+  "#70E852",
+  "#FED876",
+  "#F85C50",
+  "#F5B2AC",
+  "#460000",
+  "#FFBEED",
+  "#380438",
+  "#852EBA"
 ];
 
 DOM_CANVAS.width = window.innerWidth * window.devicePixelRatio;
@@ -132,6 +157,10 @@ ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
  * @type {Circle[]} circles
  */
 let circles = [];
+/**
+ * @type {MouseCircle}
+ */
+let mouseCircles = [];
 
 /**
  * @type {{x: number, y: number}} lastClickPosition
@@ -156,6 +185,8 @@ const clickHandler = e => {
       new Victor(e.pageX, e.pageY)
     )
   ];
+
+  mouseCircles.push(generateMouseCircle(new Victor(e.pageX, e.pageY)));
 };
 
 DOM_CANVAS.onclick = clickHandler;
@@ -163,6 +194,7 @@ DOM_CANVAS.onclick = clickHandler;
 const render = () => {
   clear();
 
+  renderMouseCircles();
   renderCircles();
   window.requestAnimationFrame(render);
 };
@@ -180,7 +212,7 @@ function renderCircles() {
   /**
    * @type {Circle[]} circle
    */
-  circles = circles.filter((circle, index) => {
+  circles = circles.filter(circle => {
     if (circle.r <= 0) {
       return false;
     }
@@ -200,5 +232,28 @@ function renderCircles() {
     circle.v.add(circle.mv);
 
     return circle;
+  });
+}
+
+function renderMouseCircles() {
+  mouseCircles.filter(mouseCircle => {
+    if (mouseCircle.r >= mouseCircle.mr || mouseCircle.r + mouseCircle.step >= mouseCircle.mr) {
+      return false;
+    }
+
+    mouseCircle.r = mouseCircle.r + mouseCircle.step;
+
+    const t = ((mouseCircle.mr - mouseCircle.ir) - mouseCircle.r) / mouseCircle.mr;
+
+    const radius = (1 - easing2(t)) * mouseCircle.mr;
+
+    ctx.beginPath();
+    
+    ctx.arc(mouseCircle.v.x, mouseCircle.v.y, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${t})`;
+    ctx.stroke();
+    ctx.closePath();
+
+    return mouseCircle;
   });
 }
